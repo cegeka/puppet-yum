@@ -1,0 +1,5 @@
+= puppet-yum module
+
+{<img src='https://codex.cegeka.be/jenkins/job/puppet-yum/badge/icon' />}[https://codex.cegeka.be/jenkins/job/puppet-yum/]
+
+This is the yum module.
