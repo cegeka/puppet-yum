@@ -21,20 +21,20 @@ define yum::repo(
   }
 
   case $ensure_real {
-    absent:
+    'absent':
       {
-        yumrepo { $title:
+        file { "/etc/yum.repos.d/${title}.repo":
           ensure => absent
         }
       }
-    default:
+    'present':
       {
         $baseurl = "${scheme}://${host}/${repo_root}"
 
         yumrepo { $title:
-          ensure          => present,
           baseurl         => $baseurl,
           descr           => $descr,
+          enabled         => $enabled,
           sslverify       => $sslverify,
           sslcacert       => $sslcacert,
           sslclientcert   => $sslclientcert,
