@@ -35,6 +35,7 @@ define yum::repo(
           baseurl         => $baseurl,
           descr           => $descr,
           enabled         => $enabled,
+          gpgcheck        => $gpgcheck,
           sslverify       => $sslverify,
           sslcacert       => $sslcacert,
           sslclientcert   => $sslclientcert,
@@ -42,5 +43,6 @@ define yum::repo(
           metadata_expire => $metadata_expire,
         }
       }
+    default: { notice('The given ensure parameter is not supported') }
   }
 }
