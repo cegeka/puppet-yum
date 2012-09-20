@@ -2,7 +2,7 @@ class yum::params {
   case $::operatingsystem {
     redhat, centos: {
       # Dirty hack because redhat doesn't follow conventions
-      if ($title == "rhn-plugin") {
+      if ($title == 'rhn-plugin') {
         $pluginname = 'yum-rhn-plugin'
       } else {
         $pluginname = $::operatingsystemrelease ? {
