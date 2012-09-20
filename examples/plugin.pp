@@ -1,3 +1,3 @@
-yum::plugin { fastestmirror:
+yum::plugin { 'fastestmirror':
   ensure => absent,
 }
