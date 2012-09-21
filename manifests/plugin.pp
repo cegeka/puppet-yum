@@ -1,14 +1,26 @@
-define yum::plugin( $ensure = undef ) {
-  include yum::params
+define yum::plugin ( $ensure = 'present') {
+  case $::operatingsystem {
+    redhat, centos: {
+      # Dirty hack because redhat doesn't follow conventions
+      if ( $title == 'rhn-plugin' ) {
+        $pluginname = 'yum-rhn-plugin'
+      } else {
+        $pluginname = $::operatingsystemrelease ? {
+          /5.*/ => "yum-${title}",
+          /6.*/ => "yum-plugin-${title}",
+        }
+      }
+    }
+    default: { fail("${::operatingsystem} is not yet supported") }
+  }
 
   if $ensure in [ present, absent ] {
     $ensure_real = $ensure
-  }
-  else {
+  } else {
     fail("Yum::Plugin[${title}]: parameter ensure must be present or absent")
   }
 
-  package { $yum::params::pluginname:
+  package { $pluginname:
     ensure => $ensure_real,
   }
 }
