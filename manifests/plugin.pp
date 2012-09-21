@@ -14,10 +14,10 @@ define yum::plugin ( $ensure = 'present') {
     default: { fail("${::operatingsystem} is not yet supported") }
   }
 
-  if $ensure in [ present, absent ] {
+  if $ensure in [ present, absent, purged ] {
     $ensure_real = $ensure
   } else {
-    fail("Yum::Plugin[${title}]: parameter ensure must be present or absent")
+    fail("Yum::Plugin[${title}]: parameter ensure must be present, absent or purged")
   }
 
   package { $pluginname:
