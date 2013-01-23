@@ -1,6 +1,6 @@
 yum::plugin { 'rhn-plugin':
   ensure      => absent,
 }
-yum::plugin { 'fastestmirrors':
+yum::plugin { 'fastestmirror':
   ensure      => absent,
 }
