@@ -70,15 +70,14 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
       is = self.query
       if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
         lineexists = false
-        File.open("/etc/yum/pluginconf.d/versionlock.list").each_line do |line|
-          puts line
-          puts "0:" + wanted + ".*"
-          if (line.chomp.eql? "0:" + wanted + ".*")
-            lineexists = true
-            break
+        IO.popen "/usr/bin/yum versionlock list" do |fd|
+          until fd.eof?
+              if (fd.readline.chomp == "0:" + wanted + ".*")
+                lineexists = true
+                break
+              end
           end
         end
-        puts lineexists
         if (lineexists == false)
           output = yum  "versionlock", wanted
         end
