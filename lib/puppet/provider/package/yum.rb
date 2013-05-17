@@ -72,7 +72,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
         lineexists = false
         IO.popen "/usr/bin/yum versionlock list" do |fd|
           until fd.eof?
-              if (fd.readline.chomp == "0:" + wanted + ".*")
+              if (fd.readline.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
                 lineexists = true
                 break
               end
