@@ -101,6 +101,15 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   # What's the latest package version available?
   def latest
+      wanted = @resource[:name]
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+        `/usr/bin/yum versionlock list`.each_line do |fd|
+          full = `rpm -q #{wanted} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
+          if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
+            `/usr/bin/yum versionlock delete #{fd}`
+          end
+        end
+      end
     upd = latest_info
     unless upd.nil?
       # FIXME: there could be more than one update for a package
@@ -120,6 +129,25 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def purge
+    puts "vanboven"
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+        lineexists = false
+        puts "we zijn er"
+        IO.popen "/usr/bin/yum versionlock list" do |fd|
+          until fd.eof?
+              if (fd.readline.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
+                lineexists = true
+                todelete = fd.readline.chomp
+                break
+              end
+          end
+        end
+        if (lineexists == true)
+          puts todelete
+          output = yum  "versionlock delete", todelete
+        end
+
+      end
     yum "-y", :erase, @resource[:name]
   end
 end
