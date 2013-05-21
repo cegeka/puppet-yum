@@ -127,7 +127,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def purge
-    full = `rpm -q #{wanted} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
+    full = `rpm -q #{@resource[:name]} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
     if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
       `/usr/bin/yum versionlock list`.each_line do |fd|
         if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
