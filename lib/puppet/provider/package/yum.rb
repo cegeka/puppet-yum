@@ -70,13 +70,11 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
       is = self.query
       if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
         lineexists = false
-        IO.popen "/usr/bin/yum versionlock list" do |fd|
-          until fd.eof?
-              if (fd.readline.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
-                lineexists = true
-                break
-              end
-          end
+        `/usr/bin/yum versionlock list`.each_line do |fd|
+            if (fd.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
+              lineexists = true
+              break
+            end
         end
         if (lineexists == false)
           output = yum  "versionlock", wanted
@@ -129,25 +127,15 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def purge
-    puts "vanboven"
-      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-        lineexists = false
-        puts "we zijn er"
-        IO.popen "/usr/bin/yum versionlock list" do |fd|
-          until fd.eof?
-              if (fd.readline.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
-                lineexists = true
-                todelete = fd.readline.chomp
-                break
-              end
-          end
+    full = `rpm -q #{wanted} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
+    if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+      `/usr/bin/yum versionlock list`.each_line do |fd|
+        if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
+          `/usr/bin/yum versionlock delete #{fd}`
         end
-        if (lineexists == true)
-          puts todelete
-          output = yum  "versionlock delete", todelete
-        end
-
       end
+    end
+
     yum "-y", :erase, @resource[:name]
   end
 end
