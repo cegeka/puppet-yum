@@ -133,10 +133,17 @@ Puppet::Type.type(:package).provide :rpm, :source => :rpm, :parent => Puppet::Pr
         nvr += ".#{get(:arch)}"
       end
     end
-    if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-      `/usr/bin/yum versionlock list`.each_line do |fd|
-        if (fd.chomp =~ /^[0-9]+:#{namver}\.\*$/)
-          `/usr/bin/yum versionlock delete #{fd}`
+    release = Facter.value("operatingsystemrelease")
+    case release
+    when /^[5]\..$/
+      puts '5'
+
+    when /^[6]\..$/
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+        `/usr/bin/yum versionlock list`.each_line do |fd|
+          if (fd.chomp =~ /^[0-9]+:#{namver}\.\*$/)
+            `/usr/bin/yum versionlock delete #{fd}`
+          end
         end
       end
     end
