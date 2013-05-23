@@ -68,7 +68,11 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
       # Add the package version
       wanted += "-#{should}"
       is = self.query
-      addtolist(wanted)
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+        puts "tis true"
+        puts wanted
+        addtolist(wanted)
+      end
       if is && Puppet::Util::Package.versioncmp(should, is[:ensure]) < 0
         self.debug "Downgrading package #{@resource[:name]} from version #{is[:ensure]} to #{should}"
         operation = :downgrade
@@ -87,7 +91,9 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   # What's the latest package version available?
   def latest
-    deletefromlist()
+    if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+      deletefromlist()
+    end
     upd = latest_info
     unless upd.nil?
       # FIXME: there could be more than one update for a package
@@ -107,44 +113,74 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def purge
-    deletefromlist()
+    if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+      deletefromlist()
+    end
     yum "-y", :erase, @resource[:name]
   end
 
   def deletefromlist
     release = Facter.value("operatingsystemrelease")
     case release
-      when /^[5]\..$/
-        puts "5"
-      when /^[6]\..$/
-        full = `rpm -q #{@resource[:name]} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
-        if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-          `/usr/bin/yum versionlock list`.each_line do |fd|
-            if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
-              `/usr/bin/yum versionlock delete #{fd}`
-            end
-          end
-        end
-      end
-  end
-  def addtolist(wanted)
-    release = Facter.value("operatingsystemrelease")
-    case release
     when /^[5]\..$/
-      puts "5"
+      present = checkifisinlist5()
+      if (present == true)
+        #TODO delete file
+      end
     when /^[6]\..$/
-      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-        lineexists = false
-        `/usr/bin/yum versionlock list`.each_line do |fd|
-          if (fd.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
-            lineexists = true
-            break
-          end
-        end
-        if (lineexists == false)
-          output = yum  "versionlock", wanted
+      full = `rpm -q #{@resource[:name]} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
+      `/usr/bin/yum versionlock list`.each_line do |fd|
+        if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
+          `/usr/bin/yum versionlock delete #{fd}`
         end
       end
     end
+  end
+  def addtolist(wanted)
+    release = Facter.value("operatingsystemrelease")
+    puts wanted
+    case release
+    when /^[5]\..$/
+    #TODO
+      present = checkifisinlist5(wanted)
+      if (present == false)
+        #TODO in file schrijven
+        puts "schrijf het in het bestand"
+      end
+    when /^[6]\..$/
+        present = checkifisinlist6(wanted)
+        puts wanted
+        if (present == false)
+          output = yum  "versionlock", wanted
+        end
+    end
+  end
+  def checkifisinlist6(package)
+      lineexists = false
+      `/usr/bin/yum versionlock list`.each_line do |fd|
+        if (fd.chomp =~ /^[0-9]+:#{package.chomp}\.\*$/)
+          lineexists = true
+          break
+        end
+      end
+    return lineexists
+  end
+  def checkifisinlist5(package)
+      present = false
+        File.open("/etc/yum/pluginconf.d/versionlock.list").each_line do |line|
+          if (line.chomp =~ /^[0-9]+:#{package.chomp}\.\*$/)
+            present = true
+          end
+        end
+      return present
+  end
+  def buildstring
+    puts `rpm -q #{@resource[:name]} --queryformat='%{EPOCH}\n'`
+    if (`rpm -q #{@resource[:name]} --queryformat='%{EPOCH}\n'`.chomp == "(none)")
+      full = `rpm -q #{@resource[:name]} --queryformat='0:%{NAME}-%{VERSION}-%{RELEASE}\n'`
+    else
+      full = `rpm -q #{@resource[:name]} --queryformat='%{EPOCH}:%{NAME}-%{VERSION}-%{RELEASE}\n'`
+    end
+    return full
   end
 end
