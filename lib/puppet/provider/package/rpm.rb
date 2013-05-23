@@ -142,6 +142,7 @@ Puppet::Type.type(:package).provide :rpm, :source => :rpm, :parent => Puppet::Pr
       if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
         `/usr/bin/yum versionlock list`.each_line do |fd|
           if (fd.chomp =~ /^[0-9]+:#{namver}\.\*$/)
+            puts fd
             `/usr/bin/yum versionlock delete #{fd}`
           end
         end
