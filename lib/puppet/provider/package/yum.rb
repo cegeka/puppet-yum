@@ -1,4 +1,6 @@
 require 'puppet/util/package'
+require 'fileutils'
+require 'tempfile'
 
 Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   desc "Support via `yum`.
@@ -64,30 +66,24 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
     when true, false, Symbol
       # pass
       should = nil
+      specificversion = false
     else
       # Add the package version
       wanted += "-#{should}"
+      specificversion = true
       is = self.query
-      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-        lineexists = false
-        `/usr/bin/yum versionlock list`.each_line do |fd|
-            if (fd.chomp =~ /^[0-9]+:#{wanted}\.\*$/)
-              lineexists = true
-              break
-            end
-        end
-        if (lineexists == false)
-          output = yum  "versionlock", wanted
-        end
-
-      end
       if is && Puppet::Util::Package.versioncmp(should, is[:ensure]) < 0
         self.debug "Downgrading package #{@resource[:name]} from version #{is[:ensure]} to #{should}"
         operation = :downgrade
       end
     end
-
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true && specificversion == true)
+        self.checknames
+      end
     output = yum "-d", "0", "-e", "0", "-y", operation, wanted
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true && specificversion == true)
+        addtolist(wanted)
+      end
 
     is = self.query
     raise Puppet::Error, "Could not find package #{self.name}" unless is
@@ -99,16 +95,11 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   # What's the latest package version available?
   def latest
-      wanted = @resource[:name]
-      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-        `/usr/bin/yum versionlock list`.each_line do |fd|
-          full = `rpm -q #{wanted} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
-          if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
-            `/usr/bin/yum versionlock delete #{fd}`
-          end
-        end
-      end
+    if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
+      deletefromlist()
+    end
     upd = latest_info
+    puts latest_info
     unless upd.nil?
       # FIXME: there could be more than one update for a package
       # because of multiarch
@@ -127,15 +118,94 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def purge
-    full = `rpm -q #{@resource[:name]} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
     if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-      `/usr/bin/yum versionlock list`.each_line do |fd|
-        if (fd.chomp =~ /^[0-9]+:#{full.chomp}\.\*$/)
-          `/usr/bin/yum versionlock delete #{fd}`
-        end
+      deletefromlist()
+    end
+    yum "-y", :erase, @resource[:name]
+  end
+
+  def deletefromlist
+    release = Facter.value("operatingsystemrelease")
+    case release
+    when /^[5]\..$/
+      full = buildstring()
+      present = checklist5(full)
+      if (present == true)
+        #TODO delete file
+        tmp = Tempfile.new("extract")
+        open('/etc/yum/pluginconf.d/versionlock.list', 'r').each { |l| tmp << l unless l.chomp == full.chomp + '.*' }
+        tmp.close
+        FileUtils.mv(tmp.path, '/etc/yum/pluginconf.d/versionlock.list')
+      end
+    when /^[6]\..$/
+      full = `rpm -q #{@resource[:name]} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
+      fulls = buildstring().chomp + '.*'
+      present = checkifisinlist6(full)
+      if (present == true)
+        `/usr/bin/yum versionlock delete #{fulls}`
       end
     end
+  end
+  def addtolist(wanted)
+    release = Facter.value("operatingsystemrelease")
+    case release
+    when /^[5]\..$/
+      present = checkifisinlist5(wanted)
+      if (present == false)
+        full = buildstring()
+        File.open("/etc/yum/pluginconf.d/versionlock.list", 'a+') {|f| f.write(full.chomp + ".*\n") }
+      end
+    when /^[6]\..$/
+        present = checkifisinlist6(wanted)
+        if (present == false)
+          output = yum  "versionlock", wanted
+        end
+    end
+  end
+  def checkifisinlist6(package)
+      lineexists = false
+      `/usr/bin/yum versionlock list`.each_line do |fd|
 
-    yum "-y", :erase, @resource[:name]
+        if (fd.chomp =~ /^[0-9]+:#{package.chomp}\.\*$/)
+          lineexists = true
+
+          break
+        end
+      end
+    return lineexists
+  end
+  def checklist5(package)
+      present = false
+        File.open("/etc/yum/pluginconf.d/versionlock.list").each_line do |line|
+          if (line.chomp =~ /^#{package.chomp}\.\*$/)
+            present = true
+          end
+        end
+      return present
+  end
+  def checkifisinlist5(package)
+      present = false
+        File.open("/etc/yum/pluginconf.d/versionlock.list").each_line do |line|
+          if (line.chomp =~ /^[0-9]+:#{package.chomp}\.\*$/)
+            present = true
+          end
+        end
+      return present
+  end
+  def buildstring
+    if (`rpm -q #{@resource[:name]} --queryformat='%{EPOCH}\n'`.chomp == "(none)")
+      full = `rpm -q #{@resource[:name]} --queryformat='0:%{NAME}-%{VERSION}-%{RELEASE}\n'`
+    else
+      full = `rpm -q #{@resource[:name]} --queryformat='%{EPOCH}:%{NAME}-%{VERSION}-%{RELEASE}\n'`
+    end
+    return full
+  end
+  def checknames
+    checkpackage = system 'rpm', '-q', @resource[:name]
+    if ( checkpackage == true)
+      puts @resource[:name]
+      self.deletefromlist
+    end
+
   end
 end
