@@ -96,7 +96,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   # What's the latest package version available?
   def latest
     if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
-      deletefromlist()
+      self.checknames
     end
     upd = latest_info
     puts latest_info
