@@ -67,7 +67,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
       # pass
       should = nil
       specificversion = false
-      puts "tis geen specifieke versie van #{wanted}"
     else
       # Add the package version
       wanted += "-#{should}"
@@ -78,11 +77,11 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
         operation = :downgrade
       end
     end
-
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true && specificversion == true)
+        self.checknames
+      end
     output = yum "-d", "0", "-e", "0", "-y", operation, wanted
       if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true && specificversion == true)
-        puts "tis een specifieke versie van #{wanted}"
-        puts wanted
         addtolist(wanted)
       end
 
@@ -100,6 +99,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
       deletefromlist()
     end
     upd = latest_info
+    puts latest_info
     unless upd.nil?
       # FIXME: there could be more than one update for a package
       # because of multiarch
@@ -132,7 +132,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
       present = checklist5(full)
       if (present == true)
         #TODO delete file
-        puts "delete from list" +  full
         tmp = Tempfile.new("extract")
         open('/etc/yum/pluginconf.d/versionlock.list', 'r').each { |l| tmp << l unless l.chomp == full.chomp + '.*' }
         tmp.close
@@ -141,7 +140,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
     when /^[6]\..$/
       full = `rpm -q #{@resource[:name]} --queryformat='%{NAME}-%{VERSION}-%{RELEASE}\n'`
       fulls = buildstring().chomp + '.*'
-      puts fulls
       present = checkifisinlist6(full)
       if (present == true)
         `/usr/bin/yum versionlock delete #{fulls}`
@@ -150,19 +148,15 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
   def addtolist(wanted)
     release = Facter.value("operatingsystemrelease")
-    puts wanted
     case release
     when /^[5]\..$/
       present = checkifisinlist5(wanted)
       if (present == false)
-        puts "schrijf het in het bestand"
         full = buildstring()
-        puts full
         File.open("/etc/yum/pluginconf.d/versionlock.list", 'a+') {|f| f.write(full.chomp + ".*\n") }
       end
     when /^[6]\..$/
         present = checkifisinlist6(wanted)
-        puts wanted
         if (present == false)
           output = yum  "versionlock", wanted
         end
@@ -171,8 +165,10 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   def checkifisinlist6(package)
       lineexists = false
       `/usr/bin/yum versionlock list`.each_line do |fd|
+
         if (fd.chomp =~ /^[0-9]+:#{package.chomp}\.\*$/)
           lineexists = true
+
           break
         end
       end
@@ -181,34 +177,35 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   def checklist5(package)
       present = false
         File.open("/etc/yum/pluginconf.d/versionlock.list").each_line do |line|
-          puts "package " + package
-          puts "line " + line
           if (line.chomp =~ /^#{package.chomp}\.\*$/)
             present = true
           end
-          puts present
         end
       return present
   end
   def checkifisinlist5(package)
       present = false
         File.open("/etc/yum/pluginconf.d/versionlock.list").each_line do |line|
-          puts "package " + package
-          puts "line " + line
           if (line.chomp =~ /^[0-9]+:#{package.chomp}\.\*$/)
             present = true
           end
-          puts present
         end
       return present
   end
   def buildstring
-    puts `rpm -q #{@resource[:name]} --queryformat='%{EPOCH}\n'`
     if (`rpm -q #{@resource[:name]} --queryformat='%{EPOCH}\n'`.chomp == "(none)")
       full = `rpm -q #{@resource[:name]} --queryformat='0:%{NAME}-%{VERSION}-%{RELEASE}\n'`
     else
       full = `rpm -q #{@resource[:name]} --queryformat='%{EPOCH}:%{NAME}-%{VERSION}-%{RELEASE}\n'`
     end
     return full
+  end
+  def checknames
+    checkpackage = system 'rpm', '-q', @resource[:name]
+    if ( checkpackage == true)
+      puts @resource[:name]
+      self.deletefromlist
+    end
+
   end
 end
