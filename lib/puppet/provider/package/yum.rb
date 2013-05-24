@@ -57,6 +57,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def install
+  puts "in install blok"
     should = @resource.should(:ensure)
     self.debug "Ensuring => #{should}"
     wanted = @resource[:name]
@@ -65,6 +66,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
     case should
     when true, false, Symbol
       # pass
+      puts should
       should = nil
       specificversion = false
     else
@@ -77,7 +79,8 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
         operation = :downgrade
       end
     end
-      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true && specificversion == true)
+      if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true )
+      #if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true && specificversion == true)
         self.checknames
       end
     output = yum "-d", "0", "-e", "0", "-y", operation, wanted
@@ -95,11 +98,12 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   # What's the latest package version available?
   def latest
+  puts "in latest blok"
     if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
       self.checknames
+      self.install
     end
     upd = latest_info
-    puts latest_info
     unless upd.nil?
       # FIXME: there could be more than one update for a package
       # because of multiarch
@@ -114,6 +118,7 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   def update
     # Install in yum can be used for update, too
+    puts "in update blok"
     self.install
   end
 
@@ -203,7 +208,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   def checknames
     checkpackage = system 'rpm', '-q', @resource[:name]
     if ( checkpackage == true)
-      puts @resource[:name]
       self.deletefromlist
     end
 
