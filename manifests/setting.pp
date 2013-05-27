@@ -1,3 +1,31 @@
+# == Definition: yum::setting
+#
+# Manages settings in the main section of the yum configuration file
+#
+# === Parameters:
+#
+# [*title*] The name of the setting (no default).
+#           - Required: yes
+#           - Content: String
+#
+# [*ensure*] The desired state for the setting (default: 'present').
+#            - Required: no
+#            - Content: 'present' | 'absent'
+#
+# [*value*] The desired value of the setting (no default).
+#           - Required: yes
+#           - Content: String | Integer
+#
+# === Sample Usage:
+#
+# Yum settings can be managed using:
+#
+#   yum::setting { 'plugins': value => '1' }
+#
+# Removing an existing setting:
+#
+#   yum::setting { 'cachedir': ensure => 'absent' }
+#
 define yum::setting( $ensure = 'present', $value = undef ) {
 
   Augeas {
@@ -30,8 +58,6 @@ define yum::setting( $ensure = 'present', $value = undef ) {
           fail("Yum::Setting[${title}]: parameter ensure must be present or absent")
         }
       }
-
-
     }
     default: {
       fail("Yum::Setting[${title}]: only supported on osfamily RedHat")
