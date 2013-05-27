@@ -1,0 +1,5 @@
+fixtures:
+  repositories:
+    "stdlib": "ssh://git@github.com/cegeka/puppet-stdlib.git"
+  symlinks:
+    "yum": "#{source_dir}"
