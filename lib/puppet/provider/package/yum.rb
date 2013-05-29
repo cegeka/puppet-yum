@@ -57,7 +57,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
   end
 
   def install
-  puts "in install blok"
     should = @resource.should(:ensure)
     self.debug "Ensuring => #{should}"
     wanted = @resource[:name]
@@ -66,7 +65,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
     case should
     when true, false, Symbol
       # pass
-      puts should
       should = nil
       specificversion = false
     else
@@ -98,7 +96,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   # What's the latest package version available?
   def latest
-  puts "in latest blok"
     if (File.exist?('/etc/yum/pluginconf.d/versionlock.list') == true)
       self.checknames
       self.install
@@ -118,7 +115,6 @@ Puppet::Type.type(:package).provide :yum, :parent => :rpm, :source => :rpm do
 
   def update
     # Install in yum can be used for update, too
-    puts "in update blok"
     self.install
   end
 
