@@ -6,6 +6,7 @@ This is the yum module.
 
 include cegeka_repos
 
-Yum::Repo <| title == 'os' |>
-Yum::Repo <| title == 'updates' |>
-Yum::Repo <| title == 'optional' |>
+* Yum::Repo <| title == 'os' |>
+* Yum::Repo <| title == 'updates' |>
+* Yum::Repo <| title == 'optional' |>
+
