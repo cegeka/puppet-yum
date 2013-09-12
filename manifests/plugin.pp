@@ -42,7 +42,7 @@ define yum::plugin ($ensure = 'present', $enable = true) {
       lens    => 'Yum.lns',
       context => "/files/etc/yum/pluginconf.d/${title}.conf/main",
       changes => "set enabled ${_enable}",
-      onlyif  => "match size enabled[. = '${_enable}'] == 0"
+      onlyif  => "match enabled[. = '${_enable}'] size == 0"
     }
   }
 }
