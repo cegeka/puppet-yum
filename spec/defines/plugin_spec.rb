@@ -82,7 +82,7 @@ describe "yum::plugin" do
               :lens    => 'Yum.lns',
               :context => '/files/etc/yum/pluginconf.d/versionlock.conf/main',
               :changes => 'set enabled 0',
-              :onlyif  => 'match size enabled[. = \'0\'] == 0',
+              :onlyif  => 'match enabled[. = \'0\'] size == 0',
             })
           end
         end
@@ -102,7 +102,7 @@ describe "yum::plugin" do
               :lens    => 'Yum.lns',
               :context => '/files/etc/yum/pluginconf.d/versionlock.conf/main',
               :changes => 'set enabled 1',
-              :onlyif  => 'match size enabled[. = \'1\'] == 0',
+              :onlyif  => 'match enabled[. = \'1\'] size == 0',
             })
           end
         end
@@ -144,7 +144,7 @@ describe "yum::plugin" do
               :lens    => 'Yum.lns',
               :context => '/files/etc/yum/pluginconf.d/versionlock.conf/main',
               :changes => 'set enabled 0',
-              :onlyif  => 'match size enabled[. = \'0\'] == 0',
+              :onlyif  => 'match enabled[. = \'0\'] size == 0',
             })
           end
         end
@@ -164,7 +164,7 @@ describe "yum::plugin" do
               :lens    => 'Yum.lns',
               :context => '/files/etc/yum/pluginconf.d/versionlock.conf/main',
               :changes => 'set enabled 1',
-              :onlyif  => 'match size enabled[. = \'1\'] == 0',
+              :onlyif  => 'match enabled[. = \'1\'] size == 0',
             })
           end
         end
