@@ -6,8 +6,8 @@ define yum::plugin ($ensure = 'present', $enable = true) {
         $packagename = 'yum-rhn-plugin'
       } else {
         $packagename = $::operatingsystemrelease ? {
-          /5.*/ => "yum-${title}",
-          /6.*/ => "yum-plugin-${title}",
+          /^5.*/ => "yum-${title}",
+          /^6.*/ => "yum-plugin-${title}",
         }
       }
     }
