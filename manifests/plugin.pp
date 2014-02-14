@@ -6,8 +6,8 @@ define yum::plugin ($ensure = 'present', $enable = true) {
         $packagename = 'yum-rhn-plugin'
       } else {
         $packagename = $::operatingsystemrelease ? {
-          /5.*/ => "yum-${title}",
-          /6.*/ => "yum-plugin-${title}",
+          /^5.*/ => "yum-${title}",
+          /^6.*/ => "yum-plugin-${title}",
         }
       }
     }
@@ -42,7 +42,7 @@ define yum::plugin ($ensure = 'present', $enable = true) {
       lens    => 'Yum.lns',
       context => "/files/etc/yum/pluginconf.d/${title}.conf/main",
       changes => "set enabled ${_enable}",
-      onlyif  => "match size enabled[. = '${_enable}'] == 0"
+      onlyif  => "match enabled[. = '${_enable}'] size == 0"
     }
   }
 }
