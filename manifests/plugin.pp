@@ -43,6 +43,7 @@ define yum::plugin ($ensure = 'present', $enable = true) {
       context => "/files/etc/yum/pluginconf.d/${title}.conf/main",
       changes => "set enabled ${_enable}",
       onlyif  => "match enabled[. = '${_enable}'] size == 0"
+      require => Package["${packagename}"]
     }
   }
 }
