@@ -8,6 +8,7 @@ define yum::plugin ($ensure = 'present', $enable = true, $config_file = undef) {
         $packagename = $::operatingsystemrelease ? {
           /^5.*/ => "yum-${title}",
           /^6.*/ => "yum-plugin-${title}",
+          /^7.*/ => "yum-plugin-${title}",
         }
       }
     }
