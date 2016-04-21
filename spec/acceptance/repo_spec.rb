@@ -9,12 +9,14 @@ describe 'yum::repo' do
         yum::repo { 'dummy':
           scheme        => 'https',
           host          => 'yum.dummy.tld',
+          repo_root     => '/path/to/dummy-$basearch',
+          descr         => 'dummy repo description',
           sslverify     => 'True',
           sslcacert     => '/etc/path/to/ca-bundle.crt',
-          sslclientcert => "/etc/path/to/clientcert.crt",
-          sslclientkey  => "/etc/path/to/clientcert.key",
+          sslclientcert => '/etc/path/to/clientcert.crt',
+          sslclientkey  => '/etc/path/to/clientcert.key',
           gpgcheck      => 1,
-          gpgkey        => "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dummy-release"
+          gpgkey        => 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-dummy-release'
         }
       EOS
 
