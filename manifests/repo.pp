@@ -11,7 +11,8 @@ define yum::repo(
                   $sslcacert = undef,
                   $sslclientcert = undef,
                   $sslclientkey = undef,
-                  $metadata_expire = undef
+                  $metadata_expire = undef,
+                  $exclude = undef
                 ) {
 
   if $ensure in [ present, absent ] {
@@ -43,6 +44,7 @@ define yum::repo(
           sslclientcert   => $sslclientcert,
           sslclientkey    => $sslclientkey,
           metadata_expire => $metadata_expire,
+          exclude         => $exclude
         }
       }
     default: { notice('The given ensure parameter is not supported') }
