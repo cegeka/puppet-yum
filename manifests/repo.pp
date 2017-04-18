@@ -29,6 +29,10 @@ define yum::repo(
       }
     }
     'present': {
+      if $scheme == undef { fail("Yum::Repo['scheme']: parameter must be defined") }
+      if $host == undef { fail("Yum::Repo['host']: parameter must be defined") }
+      if $repo_root == undef { fail("Yum::Repo['repo_root']: parameter must be defined") }
+
       $baseurl = "${scheme}://${host}/${repo_root}"
 
       yumrepo { $title:
