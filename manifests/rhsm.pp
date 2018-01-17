@@ -13,7 +13,7 @@
 class yum::rhsm ($ensure = 'present', $enable_repo = 'false') {
 
   case $::operatingsystem {
-    redhat: {
+    'RedHat': {
       case $::operatingsystemrelease {
           /5.*/: {
             $certsource = $::architecture ? {
