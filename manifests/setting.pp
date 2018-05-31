@@ -48,9 +48,20 @@ define yum::setting( $ensure = 'present', $value = undef ) {
             fail("Yum::Setting[${title}]: required parameter value must be a non-empty string or integer")
           }
           else {
-            augeas { "yum::setting::${title}":
-              changes => "set ${title} ${value}",
-              onlyif  => "match ${title}[. = ${value}] size == 0",
+            if versioncmp($::operatingsystemmajrelease, '7') < 0 { #use augeas for rhel systems <= 6
+              augeas { "yum::setting::${title}":
+                changes => "set ${title} ${value}",
+                onlyif  => "match ${title}[. = ${value}] size == 0",
+              }
+            } else {
+              ini_setting { 'yum::setting::${title}': #in rhel7 augeas is broken for yum.conf, ini_setting is required
+                ensure            => present,
+                path              => '/etc/yum.conf',
+                section           => 'main',
+                setting           => 'exclude',
+                value             => "${value}",
+                key_val_separator => '='
+              }
             }
           }
         }
