@@ -7,7 +7,7 @@ define yum::repo(
   $enabled = '1',
   $gpgcheck = '1',
   $gpgkey = undef,
-  $sslverify = 'False',
+  $sslverify = 'false',
   $sslcacert = undef,
   $sslclientcert = undef,
   $sslclientkey = undef,
