@@ -54,12 +54,12 @@ define yum::setting( $ensure = 'present', $value = undef ) {
                 onlyif  => "match ${title}[. = ${value}] size == 0",
               }
             } else {
-              ini_setting { 'yum::setting::${title}': #in rhel7 augeas is broken for yum.conf, ini_setting is required
+              ini_setting { "yum::setting::${title}": #in rhel7 augeas is broken for yum.conf, ini_setting is required
                 ensure            => present,
                 path              => '/etc/yum.conf',
                 section           => 'main',
-                setting           => 'exclude',
-                value             => "${value}",
+                setting           => $title,
+                value             => $value,
                 key_val_separator => '='
               }
             }
