@@ -1,56 +1,46 @@
-define yum::plugin ($ensure = 'present', $enable = true, $config_file = undef) {
-  case $::osfamily {
-    redhat: {
-      # Dirty hack because redhat doesn't follow conventions
-      if ( $title == 'rhn-plugin' ) {
-        $packagename = 'yum-rhn-plugin'
-      } else {
-        $packagename = $::operatingsystemrelease ? {
-          /^5.*/ => "yum-${title}",
-          /^6.*/ => "yum-plugin-${title}",
-          /^7.*/ => "yum-plugin-${title}",
-        }
-      }
-    }
-    default: { fail("only supported on osfamily RedHat") }
-  }
-
-  if ! $config_file {
-    $real_config_file = $title
+# Define: yum::plugin
+#
+# This definition installs Yum plugin.
+#
+# Parameters:
+#   [*ensure*]   - specifies if plugin should be present or absent
+#
+# Actions:
+#
+# Requires:
+#   RPM based system
+#
+# Sample usage:
+#   yum::plugin { 'versionlock':
+#     ensure  => 'present',
+#   }
+#
+define yum::plugin (
+  Enum['present', 'absent'] $ensure     = 'present',
+  Optional[String]          $pkg_prefix = undef,
+  Optional[String]          $pkg_name   = undef,
+) {
+  if $pkg_prefix {
+    $_pkg_prefix = $pkg_prefix
   } else {
-    $real_config_file = $config_file
-  }
-
-  if $ensure in [ present, absent, purged ] {
-    $ensure_real = $ensure
-  } else {
-    fail("Yum::Plugin[${title}]: parameter ensure must be present, absent or purged")
-  }
-
-  case $enable {
-    true: {
-      $_enable = '1'
-    }
-    false: {
-      $_enable = '0'
-    }
-    default: {
-      fail("Yum::Plugin[${title}]: parameter enable must be true or false")
+    $_pkg_prefix = $facts['os']['release']['major'] ? {
+      Variant[Integer[5,5], Enum['5']] => 'yum',
+      default                          => 'yum-plugin',
     }
   }
 
-  package { $packagename:
-    ensure => $ensure_real,
+  $_pkg_name = $pkg_name ? {
+    Variant[Enum[''], Undef] => "${_pkg_prefix}-${name}",
+    default                  => "${_pkg_prefix}-${pkg_name}",
   }
 
-  if $ensure_real == 'present' {
-    augeas { "yum-plugin-${title}-enable":
-      incl    => "/etc/yum/pluginconf.d/${real_config_file}.conf",
-      lens    => 'Yum.lns',
-      context => "/files/etc/yum/pluginconf.d/${real_config_file}.conf/main",
-      changes => "set enabled ${_enable}",
-      onlyif  => "match enabled[. = '${_enable}'] size == 0",
-      require => Package["${packagename}"]
+  package { $_pkg_name:
+    ensure  => $ensure,
+  }
+
+  if ! defined(Yum::Config['plugins']) {
+    yum::config { 'plugins':
+      ensure => 1,
     }
   }
 }

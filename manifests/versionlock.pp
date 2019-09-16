@@ -2,6 +2,14 @@
 #
 # This definition locks package from updates.
 #
+# NOTE: The resource title must use the format
+#   "%{EPOCH}:%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}".  This can be retrieved via
+#   the command `rpm -q --qf '%{EPOCH}:%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}'.
+#   If "%{EPOCH}" returns as '(none)', it should be set to '0'.  Wildcards may
+#   be used within token slots, but must not cover seperators, e.g.,
+#   '0:b*sh-4.1.2-9.*' covers Bash version 4.1.2, revision 9 on all
+#   architectures.
+#
 # Parameters:
 #   [*ensure*] - specifies if versionlock should be present, absent or exclude
 #
@@ -12,20 +20,16 @@
 #
 # Sample usage:
 #   yum::versionlock { '0:bash-4.1.2-9.el6_2.*':
-#     ensure  => present,
+#     ensure  => 'present',
 #   }
 #
 define yum::versionlock (
-  $ensure = present,
+  Enum['present', 'absent', 'exclude'] $ensure = 'present',
 ) {
-  include ::yum::plugin::versionlock
+  contain yum::plugin::versionlock
 
-  if ($name =~ /^[0-9]+:.+\*$/) {
-    $line = $name
-  } elsif ($name =~ /^[0-9]+:.+-.+-.+\./) {
-    $line= "${name}*"
-  } else {
-    fail('Package name must be formated as \'EPOCH:NAME-VERSION-RELEASE.ARCH\'')
+  unless $name.is_a(Yum::VersionlockString) {
+    fail('Package name must be formated as %{EPOCH}:%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}. See Yum::Versionlock documentation for details.')
   }
 
   $line_prefix = $ensure ? {
@@ -34,17 +38,14 @@ define yum::versionlock (
   }
 
   case $ensure {
-    'present','exclude': {
+    'present', 'exclude', default: {
       concat::fragment { "yum-versionlock-${name}":
-        content => "${line_prefix}${line}\n",
+        content => "${line_prefix}${name}\n",
         target  => $yum::plugin::versionlock::path,
       }
     }
     'absent':{
       # fragment will be removed
-    }
-    default: {
-      fail("Invalid ensure state: ${ensure}")
     }
   }
 }
