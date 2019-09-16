@@ -1,11 +1,9 @@
 define yum::repo(
   $ensure = present,
-  $scheme = undef,
-  $host = undef,
-  $repo_root = undef,
+  $baseurl = undef,
   $descr = undef,
-  $enabled = '1',
-  $gpgcheck = '1',
+  $enabled = true,
+  $gpgcheck = true,
   $gpgkey = undef,
   $sslverify = 'false',
   $sslcacert = undef,
@@ -29,11 +27,7 @@ define yum::repo(
       }
     }
     'present': {
-      if $scheme == undef { fail("Yum::Repo['scheme']: parameter must be defined") }
-      if $host == undef { fail("Yum::Repo['host']: parameter must be defined") }
-      if $repo_root == undef { fail("Yum::Repo['repo_root']: parameter must be defined") }
-
-      $baseurl = "${scheme}://${host}/${repo_root}"
+      if $baseurl == undef { fail("Yum::Repo['baseurl']: parameter must be defined") }
 
       yumrepo { $title:
         baseurl         => $baseurl,
