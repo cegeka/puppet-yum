@@ -9,7 +9,7 @@ shared_examples 'a Yum class' do |value|
     is_expected.to contain_exec('package-cleanup_oldkernels').with(
       command: "/usr/bin/package-cleanup --oldkernels --count=#{value} -y",
       refreshonly: true
-    ).that_requires('Package[yum-utils]').that_subscribes_to('Yum::Config[installonly_limit]')
+    ).that_subscribes_to('Yum::Config[installonly_limit]')
   end
 end
 
@@ -41,7 +41,6 @@ describe 'yum' do
 
         case facts[:os]['name']
         when 'CentOS'
-          it { is_expected.to have_yumrepo_resource_count(10) }
           it_behaves_like 'a catalog containing repos', [
             'base',
             'updates',
@@ -54,15 +53,19 @@ describe 'yum' do
             'centos-media'
           ]
           case facts[:os]['release']['major']
+          when '8'
+            it { is_expected.to have_yumrepo_resource_count(9) }
           when '7'
             it { is_expected.to contain_yumrepo('cr') }
             it { is_expected.not_to contain_yumrepo('contrib') }
           when '6'
             it { is_expected.to contain_yumrepo('contrib') }
             it { is_expected.not_to contain_yumrepo('cr') }
+          else
+            it { is_expected.to have_yumrepo_resource_count(10) }
           end
         when 'Amazon'
-          it { is_expected.to have_yumrepo_resource_count(16) }
+          it { is_expected.to have_yumrepo_resource_count(16) } # rubocop:disable RSpec/RepeatedExample
           it_behaves_like 'a catalog containing repos', [
             'amzn-main',
             'amzn-main-debuginfo',
@@ -103,12 +106,51 @@ describe 'yum' do
             'rhui-REGION-rhel-server-debug-supplementary',
             'rhui-REGION-rhel-server-source-supplementary'
           ]
+        when 'VirtuozzoLinux'
+          case facts[:os]['release']['major']
+          when '6'
+            it { is_expected.to have_yumrepo_resource_count(12) }
+            it_behaves_like 'a catalog containing repos', [
+              'virtuozzolinux-base',
+              'virtuozzolinux-updates',
+              'virtuozzolinux-base-debuginfo',
+              'virtuozzolinux-updates-debuginfo',
+              'virtuozzolinux-factory',
+              'virtuozzolinux-factory-debuginfo',
+              'virtuozzo-os',
+              'virtuozzo-updates',
+              'virtuozzo-os-debuginfo',
+              'virtuozzo-updates-debuginfo',
+              'virtuozzo-readykernel',
+              'obsoleted_tmpls'
+            ]
+          when '7'
+            it { is_expected.to have_yumrepo_resource_count(16) } # rubocop:disable RSpec/RepeatedExample
+            it_behaves_like 'a catalog containing repos', [
+              'virtuozzolinux-base',
+              'virtuozzolinux-updates',
+              'virtuozzolinux-base-debuginfo',
+              'virtuozzolinux-updates-debuginfo',
+              'virtuozzolinux-factory',
+              'virtuozzolinux-factory-debuginfo',
+              'virtuozzo-os',
+              'virtuozzo-updates',
+              'virtuozzo-os-debuginfo',
+              'virtuozzo-updates-debuginfo',
+              'virtuozzo-readykernel',
+              'obsoleted_tmpls',
+              'factory',
+              'factory-debuginfo',
+              'virtuozzolinux-vz-factory',
+              'virtuozzolinux-vz-factory-debuginfo'
+            ]
+          end
         else
           it { is_expected.to have_yumrepo_resource_count(0) }
         end
 
         context 'and the CentOS base repo is negated' do
-          let(:facts) { facts.merge(hiera_fixture: 'repo_exclusions') }
+          let(:params) { super().merge(repo_exclusions: ['base']) }
 
           case facts[:os]['name']
           when 'CentOS'
@@ -124,7 +166,7 @@ describe 'yum' do
               'centos-media'
             ]
           when 'Amazon'
-            it { is_expected.to have_yumrepo_resource_count(16) }
+            it { is_expected.to have_yumrepo_resource_count(16) } # rubocop:disable RSpec/RepeatedExample
             it_behaves_like 'a catalog containing repos', [
               'amzn-main',
               'amzn-main-debuginfo',
@@ -165,6 +207,45 @@ describe 'yum' do
               'rhui-REGION-rhel-server-debug-supplementary',
               'rhui-REGION-rhel-server-source-supplementary'
             ]
+          when 'VirtuozzoLinux'
+            case facts[:os]['release']['major']
+            when '6'
+              it { is_expected.to have_yumrepo_resource_count(12) }
+              it_behaves_like 'a catalog containing repos', [
+                'virtuozzolinux-base',
+                'virtuozzolinux-updates',
+                'virtuozzolinux-base-debuginfo',
+                'virtuozzolinux-updates-debuginfo',
+                'virtuozzolinux-factory',
+                'virtuozzolinux-factory-debuginfo',
+                'virtuozzo-os',
+                'virtuozzo-updates',
+                'virtuozzo-os-debuginfo',
+                'virtuozzo-updates-debuginfo',
+                'virtuozzo-readykernel',
+                'obsoleted_tmpls'
+              ]
+            when '7'
+              it { is_expected.to have_yumrepo_resource_count(16) } # rubocop:disable RSpec/RepeatedExample
+              it_behaves_like 'a catalog containing repos', [
+                'virtuozzolinux-base',
+                'virtuozzolinux-updates',
+                'virtuozzolinux-base-debuginfo',
+                'virtuozzolinux-updates-debuginfo',
+                'virtuozzolinux-factory',
+                'virtuozzolinux-factory-debuginfo',
+                'virtuozzo-os',
+                'virtuozzo-updates',
+                'virtuozzo-os-debuginfo',
+                'virtuozzo-updates-debuginfo',
+                'virtuozzo-readykernel',
+                'obsoleted_tmpls',
+                'factory',
+                'factory-debuginfo',
+                'virtuozzolinux-vz-factory',
+                'virtuozzolinux-vz-factory-debuginfo'
+              ]
+            end
           else
             it { is_expected.to have_yumrepo_resource_count(0) }
           end
@@ -208,8 +289,7 @@ describe 'yum' do
           let(:params) { { config_options: { 'installonly_limit' => false } } }
 
           it 'raises a useful error' do
-            is_expected.to raise_error(
-              Puppet::PreformattedError,
+            is_expected.to compile.and_raise_error(
               %r{The value or ensure for `\$yum::config_options\[installonly_limit\]` must be an Integer, but it is not\.}
             )
           end
@@ -278,6 +358,21 @@ describe 'yum' do
         when '6'
           it { is_expected.to contain_yum__gpgkey('/etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-6') }
         end
+      end
+
+      context 'when utils_package_name is not set' do
+        case facts[:os]['name']
+        when 'Fedora'
+          it { is_expected.to contain_package('dnf-utils') }
+        else
+          it { is_expected.to contain_package('yum-utils') }
+        end
+      end
+      context 'when utils_package_name is set' do
+        let(:params) { { utils_package_name: 'dnf-utils' } }
+
+        it { is_expected.not_to contain_package('yum-utils') }
+        it { is_expected.to contain_package('dnf-utils') }
       end
     end
   end
